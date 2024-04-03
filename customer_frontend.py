@@ -7,8 +7,11 @@ import json
 
 from tkinter import messagebox
 
+import sqlhandler
+
+
 PROJECT_PATH = pathlib.Path(__file__).parent
-PROJECT_UI = PROJECT_PATH / "gui.ui"
+PROJECT_UI = PROJECT_PATH / "customer_gui.ui"
 
 class GuiApp:
     
@@ -40,6 +43,8 @@ class GuiApp:
             "Meal 5" : 25,
             "Meal 6" : 30,
         }
+
+        self.order_database = sqlhandler.OrderDatabase()
 
         self.mainwindow.mainloop()
 
@@ -95,14 +100,6 @@ class GuiApp:
     def calculate_total(self):
         return sum(self.meal_price_index[meal] for meal in self.final_order)
 
-    def get_last_order(self):
-        with open("../Orders.json", "r") as f:
-            data = json.loads(f.read())
-        if not data:
-            return 1
-        print(data)
-        return int(data["Order ID"])
-
     ################
     # --> EVENTS <--
     ################
@@ -150,16 +147,10 @@ class GuiApp:
         if not self.var_address_entry.get() and self.order_type == "Delivery":
             messagebox.showinfo("Empty Address", "You have to input your address first.")
             return
+        
+        #self.order_database.add_order(self.var_name_entry.get(), self.order_type, self.final_order, self.calculate_total())
+        self.order_database.add_order(self.var_name_entry.get(), self.order_type, self.final_order, self.var_address_entry.get(), 0 , self.calculate_total())
 
-        out = {
-            "Order ID" : self.get_last_order() + 1,
-            "Customer Name" : self.var_name_entry.get(),
-            "Order Type" : self.order_type,
-            "Order" : self.final_order,
-            "Total" : self.calculate_total()
-        }
-        with open("./Orders.json", "a") as f:
-            f.write(json.dumps(out, indent=4))
         messagebox.showinfo("Order Placed", "Your order has been placed, Thank You.")
         exit(0)
 

@@ -1,21 +1,23 @@
 #!/usr/bin/python3
 import pathlib
-import tkinter as tk
-import pygubu
 import re
-import json
-
+import tkinter as tk
 from tkinter import messagebox
-
+import pygubu
+# IN-HOUSE MODULES
 import sqlhandler
-
 
 PROJECT_PATH = pathlib.Path(__file__).parent
 PROJECT_UI = PROJECT_PATH / "customer_gui.ui"
 
+#TODO
+#   change the meal_index
+#   general refactoring
+
 class GuiApp:
-    
+    ######################
     #--> INITIAL SETUP <--
+    ######################
 
     def __init__(self, master=None):
         self.builder = builder = pygubu.Builder()
@@ -33,7 +35,6 @@ class GuiApp:
         builder.connect_callbacks(self)
 
     def run(self):
-        # MEMBER VARIABLES
         self.final_order = []
         self.meal_price_index = {
             "Meal 1" : 5,
@@ -43,19 +44,17 @@ class GuiApp:
             "Meal 5" : 25,
             "Meal 6" : 30,
         }
-
-        self.order_database = sqlhandler.OrderDatabase()
-
+        self.database = sqlhandler.RestaurantDatabase()
         self.mainwindow.mainloop()
 
     #################
     # --> GETTERS <--
     #################
-
+    
     def get_entry(self, entry_name : str):
         ret : tk.Entry = self.builder.get_object(entry_name)
         return ret
-
+    
     def get_textbox(self, textbox_name : str):
         ret : tk.Text = self.builder.get_object(textbox_name)
         return ret
@@ -76,19 +75,19 @@ class GuiApp:
     def lock_entry(self, entry_name : str):
         self.get_entry(entry_name).configure(state="disabled")
 
+    def lock_button(self, button : str):
+        self.get_button(button).configure(state="disabled")
+
     def append_to_textbox(self, textbox : str, val):
         self.get_textbox(textbox).configure(state="normal")
         self.get_textbox(textbox).insert(tk.END, val + "\n")
         self.get_textbox(textbox).configure(state="disabled")
 
-    def lock_button(self, button : str):
-        self.get_button(button).configure(state="disabled")
-
     def validate_name(self):
         if not self.is_proper_name(self.var_name_entry.get()):
             messagebox.showwarning("Improper name", "The name you have entered is improper.")
             return False
-        name_entry : tk.Entry = self.builder.get_object("w_name_entry") #These two lines will lock the widget once the name is deemed to be proper.
+        name_entry = self.get_entry("w_name_entry") #These two lines will lock the widget once the name is deemed to be proper.
         name_entry.configure(state="disabled")
         return True
     
@@ -99,6 +98,13 @@ class GuiApp:
 
     def calculate_total(self):
         return sum(self.meal_price_index[meal] for meal in self.final_order)
+
+    def place_order(self):
+        table_id = 0
+        if self.order_type == "Dine In":
+            table_id = self.database.get_next_free_table()
+        self.database.add_order(self.var_name_entry.get(), self.order_type, self.final_order, self.var_address_entry.get(), table_id , self.calculate_total())
+        self.database.set_table_status(table_id, 1)
 
     ################
     # --> EVENTS <--
@@ -148,8 +154,7 @@ class GuiApp:
             messagebox.showinfo("Empty Address", "You have to input your address first.")
             return
         
-        #self.order_database.add_order(self.var_name_entry.get(), self.order_type, self.final_order, self.calculate_total())
-        self.order_database.add_order(self.var_name_entry.get(), self.order_type, self.final_order, self.var_address_entry.get(), 0 , self.calculate_total())
+        self.place_order()
 
         messagebox.showinfo("Order Placed", "Your order has been placed, Thank You.")
         exit(0)

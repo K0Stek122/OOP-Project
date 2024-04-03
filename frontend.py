@@ -1,136 +1,120 @@
+#!/usr/bin/python3
+import pathlib
 import tkinter as tk
-from tkinter import messagebox
-import json
+import pygubu
 import re
+import json
 
-import backend
+from tkinter import messagebox
 
-class CreateOrderGui(tk.Frame):
-    def __init__(self, parent, *args, **kwargs):
-        tk.Frame.__init__(self, parent, *args, **kwargs)
-        self.parent = parent
-        self.restaurant = backend.Restaurant(50, 10)
-        self.__setup_gui()
+PROJECT_PATH = pathlib.Path(__file__).parent
+PROJECT_UI = PROJECT_PATH / "gui.ui"
 
-    def __setup_gui(self):
-        self.parent.geometry("395x695")
+class GuiApp:
+    def __init__(self, master=None):
+        self.builder = builder = pygubu.Builder()
+        builder.add_resource_path(PROJECT_PATH)
+        builder.add_from_file(PROJECT_UI)
+        # Main widget
+        self.mainwindow: ttk.Frame = builder.get_object("frame1", master)
 
-        self.fullname_label = tk.Label(self, text="Full Name")
-        self.fullname_label.grid(row=0, column=0, padx=10, pady=10)
+        self.var_name_entry: tk.StringVar = None
+        self.var_address_entry: tk.StringVar = None
+        self.var_available_meals_combobox: tk.StringVar = None
+        builder.import_variables(self)
 
-        self.name_entry = tk.Entry(self)
-        self.name_entry.grid(row=0, column=1, padx=10, pady=10)
+        builder.connect_callbacks(self)
 
-        self.dine_in_button = tk.Button(self, text="Dine In", bg="lightgray", command=self.__e_DineInButton)
-        self.dine_in_button.grid(row=1, column=0, padx=10, pady=10)
+    def run(self):
+        self.final_order = []
+        self.mainwindow.mainloop()
 
-        self.takeaway_button = tk.Button(self, text="Takeaway", bg="lightgray", command=self.__e_TakeawayButton)
-        self.takeaway_button.grid(row=1, column=1, padx=10, pady=10)
+    # --> GETTERS <--
 
-        self.delivery_button = tk.Button(self, text="Delivery", bg="lightgray", command=self.__e_DeliveryButton)
-        self.delivery_button.grid(row=1, column=2, padx=10, pady=10)
+    def get_entry(self, entry_name : str):
+        ret : tk.Entry = self.builder.get_object(entry_name)
+        return ret
 
-        self.error_label = tk.Label(self, text="You need to enter a name first", fg="red")
+    def get_textbox(self, textbox_name : str):
+        ret : tk.Text = self.builder.get_object(textbox_name)
+        return ret
+    
+    def get_button(self, button_name : str):
+        ret : tk.Button = self.builder.get_object(button_name)
+        return ret
+    
+    #--> UTILITY FUNCTIONS <--
 
-    def __proper_name(self):
-        if self.name_entry.get() == "" or not bool(re.match(r"^[A-Z][a-z]+\s[A-Z][a-z]+$", self.name_entry.get())):
-            self.error_label.grid(row=2, column=1, padx=10, pady=10)
+    def is_proper_name(self, name):
+        if name == "" or not bool(re.match(r"^[A-Z][a-z]+\s[A-Z][a-z]+$", name)):
             return False
-        self.error_label.destroy()
+        return True
+    
+    def lock_entry(self, entry_name : str):
+        self.get_entry(entry_name).configure(state="disabled")
+
+    def append_to_textbox(self, textbox : str, val):
+        self.get_textbox(textbox).configure(state="normal")
+        self.get_textbox(textbox).insert(tk.END, val + "\n")
+        self.get_textbox(textbox).configure(state="disabled")
+
+    def lock_button(self, button : str):
+        self.get_button(button).configure(state="disabled")
+
+    def validate_name(self):
+        if not self.is_proper_name(self.var_name_entry.get()):
+            messagebox.showwarning("Improper name", "The name you have entered is improper.")
+            return False
+        name_entry : tk.Entry = self.builder.get_object("w_name_entry") #These two lines will lock the widget once the name is deemed to be proper.
+        name_entry.configure(state="disabled")
         return True
 
-    def __e_DineInButton(self):
-        if self.__proper_name():
-            self.name_entry.config(state="readonly")
+    # --> EVENTS <--
 
-            self.order_label = tk.Label(self, text="Order")
-            self.order_label.grid(row=3, column=0, padx=10, pady=10)
+    def e_dinein(self):
+        if not self.validate_name():
+            return
+        self.order_type = "Dine In"
+        
+        self.lock_entry("w_address_entry")
+        self.lock_button("w_dinein_button")
+        self.lock_button("w_takeaway_button")
+        self.lock_button("w_delivery_button")
 
-            self.order_listbox = tk.Listbox(self)
-            self.order_listbox.grid(row=3, column=1, padx=10, pady=10)
-            meals = ["Meal 1", "Meal 2", "Meal 3", "Meal 4", "Meal 5"]
-            for meal in meals:
-                self.order_listbox.insert(tk.END, meal)
-            
-            self.arrow_button = tk.Button(self, text="Add", bg="lightgray", command=self.__e_AddMeal)
-            self.arrow_button.grid(row=4, column=1, padx=1, pady=10)
-            self.selected_order_listbox = tk.Listbox(self)
-            self.selected_order_listbox.grid(row=5, column=1, padx=10, pady=10)
+    def e_takeaway(self):
+        if not self.validate_name():
+            return
+        self.order_type = "Takeaway"
+        self.lock_entry("w_address_entry")
 
-            self.order_button = tk.Button(self, text="Order", bg="lightgray", command=lambda: self.__e_SaveOrder("DineInOrder"))
-            self.order_button.grid(row=6, column=1, padx=10, pady=10)
+    def e_delivery(self):
+        if not self.validate_name():
+            return
+        self.order_type = "Delivery"
+   
+    def e_add_meal(self):
+        self.final_order.append(self.var_available_meals_combobox.get())
+        self.append_to_textbox("w_selected_meals_textbox", self.var_available_meals_combobox.get())
 
-    def __e_TakeawayButton(self):
-        if self.__proper_name():
-            self.order_flag = "DeliveryOrder"
-            self.name_entry.config(state="readonly")
+    def e_order(self):
+        if not self.var_name_entry.get():
+            messagebox.showinfo("Empty Name", "Enter your name first.")
+            return
+        if len(self.final_order) <= 0:
+            messagebox.showinfo("Empty order", "Cannot order nothing.")
+            return
+        if not self.var_address_entry.get() and self.order_type == "Delivery":
+            messagebox.showinfo("Empty Address", "You have to input your address first.")
 
-            self.order_label = tk.Label(self, text="Order")
-            self.order_label.grid(row=3, column=0, padx=10, pady=10)
-
-            self.order_listbox = tk.Listbox(self)
-            self.order_listbox.grid(row=3, column=1, padx=10, pady=10)
-            meals = ["Meal 1", "Meal 2", "Meal 3", "Meal 4", "Meal 5"]
-            for meal in meals:
-                self.order_listbox.insert(tk.END, meal)
-            
-            self.arrow_button = tk.Button(self, text="Add", bg="lightgray", command=self.__e_AddMeal)
-            self.arrow_button.grid(row=4, column=1, padx=1, pady=10)
-            self.selected_order_listbox = tk.Listbox(self)
-            self.selected_order_listbox.grid(row=5, column=1, padx=10, pady=10)
-
-            self.order_button = tk.Button(self, text="Order", bg="lightgray", command=lambda: self.__e_SaveOrder("TakeawayOrder"))
-            self.order_button.grid(row=6, column=1, padx=10, pady=10)
-
-    def __e_DeliveryButton(self):
-        if self.__proper_name():
-            self.order_flag = "DeliveryOrder"
-            self.name_entry.config(state="readonly")
-
-            self.addr_label = tk.Label(self, text="Address")
-            self.addr_label.grid(row=2, column=0, padx=10, pady=10)
-
-            self.addr_entry = tk.Entry(self)
-            self.addr_entry.grid(row = 2, column=1, padx=10, pady=10)
-
-            self.order_label = tk.Label(self, text="Order")
-            self.order_label.grid(row=3, column=0, padx=10, pady=10)
-
-            self.order_listbox = tk.Listbox(self)
-            self.order_listbox.grid(row=3, column=1, padx=10, pady=10)
-            meals = ["Meal 1", "Meal 2", "Meal 3", "Meal 4", "Meal 5"]
-            for meal in meals:
-                self.order_listbox.insert(tk.END, meal)
-            
-            self.arrow_button = tk.Button(self, text="Add", bg="lightgray", command=self.__e_AddMeal)
-            self.arrow_button.grid(row=4, column=1, padx=1, pady=10)
-            self.selected_order_listbox = tk.Listbox(self)
-            self.selected_order_listbox.grid(row=5, column=1, padx=10, pady=10)
-
-            self.order_button = tk.Button(self, text="Order", bg="lightgray", command=lambda: self.__e_SaveOrder("DeliveryOrder"))
-            self.order_button.grid(row=6, column=1, padx=10, pady=10)
-
-    def __e_AddMeal(self):
-        if self.order_listbox.curselection() != None:
-            self.selected_order_listbox.insert(tk.END, self.order_listbox.get(self.order_listbox.curselection()))
-
-    def __e_SaveOrder(self, order_type):
-
-        l_customer_address = lambda : "" if order_type != "DeliveryOrder" else self.addr_entry.get()
-        l_table_number = lambda : -1 if order_type != "DineInOrder" else 0
-
-        order_info = {
-            "CustomerName" : self.name_entry.get(),
-            "CustomerAddress" : l_customer_address(),
-            "OrderType" : order_type,
-            "Order" : self.selected_order_listbox.get(0, tk.END),
-            "TableNumber" : l_table_number()
+        out = {
+            "Customer Name" : self.var_name_entry.get(),
+            "Order Type" : self.order_type,
+            "Order" : self.final_order
         }
+        with open("Orders.json", "a") as f:
+            f.write(json.dumps(out))
 
-        if order_type == "DineInOrder":
-            messagebox.showinfo("Order", "Your order has been placed successfully! Your table is {TableNumber}")
-        else:
-            messagebox.showinfo("Order", "Your order has been placed successfully!")
-
-        self.restaurant.create_order(order_info)
-        self.parent.destroy()
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = GuiApp(root)
+    app.run()

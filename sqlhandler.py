@@ -7,19 +7,25 @@ class RestaurantDatabase:
         self.create_tables()
 
     def create_tables(self):
-        self.cursor.execute("PRAGMA foreign_keys = ON")
-        self.conn.commit()
+        self.set_foreign_keys()
         
         self.cursor.execute("CREATE TABLE IF NOT EXISTS orders (order_id INTEGER PRIMARY KEY, customer_name TEXT, order_type TEXT, full_order TEXT, address TEXT, table_id INTEGER, total INTEGER, FOREIGN KEY (table_id) REFERENCES tables(table_id))")
         self.conn.commit()
         self.cursor.execute("CREATE TABLE IF NOT EXISTS tables (table_id INTEGER PRIMARY KEY, table_status INTEGER)")
         self.conn.commit()
         
+        self.initialise_tables()
+
+    def initialise_tables(self):
         self.cursor.execute("SELECT COUNT(*) FROM tables")
         res = self.cursor.fetchall()
         if res[0] == 0:
             self.set_tables()
         self.set_tables(50)
+        
+    def set_foreign_keys(self, state = True):
+            self.cursor.execute("PRAGMA foreign_keys = ON" if state else "PRAGMA foreign_keys = on")
+            self.conn.commit()
 
     def set_tables(self, amnt : int):
         for i in range(amnt):

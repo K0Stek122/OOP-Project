@@ -100,7 +100,7 @@ class GuiApp:
         return sum(self.meal_price_index[meal] for meal in self.final_order)
 
     def place_order(self):
-        table_id = 0
+        table_id = 1
         if self.order_type == "Dine In":
             table_id = self.database.get_next_free_table()
         self.database.add_order(self.var_name_entry.get(), self.order_type, self.final_order, self.var_address_entry.get(), table_id , self.calculate_total())

@@ -57,7 +57,6 @@ class RestaurantGuiApp:
         self.get_textbox(textbox).delete("1.0", tk.END)
         self.get_textbox(textbox).configure(state="disabled")
 
-
     def append_to_textbox(self, textbox : str, val):
         self.get_textbox(textbox).configure(state="normal")
         self.get_textbox(textbox).insert(tk.END, val + "\n")

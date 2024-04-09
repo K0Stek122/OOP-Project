@@ -10,6 +10,36 @@ import sqlhandler
 PROJECT_PATH = pathlib.Path(__file__).parent
 PROJECT_UI = PROJECT_PATH / "customer_gui.ui"
 
+class Order:
+    def __init__(self, items, total, customer_name):
+        self.items = items
+        self.total = total
+        self.customer_name = customer_name
+        self.order_type = ""
+        self.table_number = 1
+        self.address = ""
+
+class TakeawayOrder(Order):
+    def __init__(self, items, total, customer_name):
+        super().__init__(items, total, customer_name)
+        self.order_type = "Takeaway"
+        self.table_number = 1
+
+
+class DineInOrder(Order):
+    def __init__(self, items, total, table_number, customer_name):
+        super().__init__(items, total, customer_name)
+        self.table_number = table_number
+        self.order_type = "Dine In"
+
+class DeliveryOrder(Order):
+    def __init__(self, items, total, address, customer_name):
+        super().__init__(items, total, customer_name)
+        self.address = address
+        self.order_type = "Delivery"
+        self.table_number = 1
+
+
 #TODO
 #   change the meal_index
 #   general refactoring
@@ -36,7 +66,7 @@ class GuiApp:
         self.run()
 
     def run(self):
-        self.final_order = []
+        self.final_order_lst = []
         self.database = sqlhandler.RestaurantDatabase()
         self.mainwindow.mainloop()
 
@@ -90,13 +120,19 @@ class GuiApp:
         self.lock_button("w_delivery_button")
 
     def calculate_total(self):
-        return sum(self.meal_price_index[meal] for meal in self.final_order)
+        return sum(self.meal_price_index[meal] for meal in self.final_order_lst)
 
     def place_order(self):
         table_id = 1
+        final_order = None
         if self.order_type == "Dine In":
-            table_id = self.database.get_next_free_table()
-        self.database.add_order(self.var_name_entry.get(), self.order_type, self.final_order, self.var_address_entry.get(), table_id , self.calculate_total())
+            final_order = DineInOrder(self.final_order_lst, self.calculate_total(), self.database.get_next_free_table(), self.var_name_entry.get())
+        elif self.order_type == "Takeaway":
+            final_order = TakeawayOrder(self.final_order_lst, self.calculate_total, self.var_name_entry.get())
+        else:
+            final_order = DeliveryOrder(self.final_order_lst, self.calculate_total(), self.var_address_entry.get(), self.var_name_entry.get())
+        # self.database.add_order(self.var_name_entry.get(), self.order_type, self.final_order_lst, self.var_address_entry.get(), table_id , self.calculate_total())
+        self.database.add_order(final_order.customer_name, final_order.order_type, final_order.items, final_order.address, final_order.table_number, final_order.total)
         self.database.set_table_status(table_id, 1)
 
     ################
@@ -106,6 +142,7 @@ class GuiApp:
     def e_dinein(self):
         if not self.validate_name():
             return
+        
         self.order_type = "Dine In"
         
         self.lock_entry("w_address_entry")
@@ -125,7 +162,7 @@ class GuiApp:
         self.lock_all_buttons()
 
     def e_add_meal(self):
-        self.final_order.append(self.var_available_meals_combobox.get())
+        self.final_order_lst.append(self.var_available_meals_combobox.get())
         self.append_to_textbox("w_selected_meals_textbox", self.var_available_meals_combobox.get())
 
         self.var_total_label.set(f"Total: {self.calculate_total()}$")
@@ -134,7 +171,7 @@ class GuiApp:
         if not self.var_name_entry.get():
             messagebox.showinfo("Empty Name", "Enter your name first.")
             return
-        if len(self.final_order) <= 0:
+        if len(self.final_order_lst) <= 0:
             messagebox.showinfo("Empty order", "Cannot order nothing.")
             return
         if not self.var_address_entry.get() and self.order_type == "Delivery":

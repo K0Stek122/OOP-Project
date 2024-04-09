@@ -10,26 +10,46 @@ import sqlhandler
 PROJECT_PATH = pathlib.Path(__file__).parent
 PROJECT_UI = PROJECT_PATH / "customer_gui.ui"
 
+class Table:
+    def __init__(self, table_number):
+        self.table_number = table_number
+    
+    def get_table_number(self):
+        return self.table_number
+    
+    def set_table_number(self, table_number):
+        self.table_number = table_number
+
 class Order:
     def __init__(self, items, total, customer_name):
-        self.items = items
+        self.__items = items
         self.total = total
         self.customer_name = customer_name
-        self.order_type = ""
-        self.table_number = 1
+        self.__order_type = ""
+        self.table = Table(1)
         self.address = ""
-
+    
+    def get_items(self):
+        return self.__items
+    def set_items(self, items):
+        self.__items == items
+    
+    def get_order_type(self):
+        return self.__order_type
+    def set_order_type(self, order_type):
+        self.__order_type = order_type
+        
 class TakeawayOrder(Order):
     def __init__(self, items, total, customer_name):
         super().__init__(items, total, customer_name)
         self.order_type = "Takeaway"
-        self.table_number = 1
+        self.table = 1
 
 
 class DineInOrder(Order):
     def __init__(self, items, total, table_number, customer_name):
         super().__init__(items, total, customer_name)
-        self.table_number = table_number
+        self.table = Table(table_number)
         self.order_type = "Dine In"
 
 class DeliveryOrder(Order):
@@ -37,7 +57,7 @@ class DeliveryOrder(Order):
         super().__init__(items, total, customer_name)
         self.address = address
         self.order_type = "Delivery"
-        self.table_number = 1
+        self.table = Table(1)
 
 
 #TODO
@@ -132,7 +152,7 @@ class GuiApp:
         else:
             final_order = DeliveryOrder(self.final_order_lst, self.calculate_total(), self.var_address_entry.get(), self.var_name_entry.get())
         # self.database.add_order(self.var_name_entry.get(), self.order_type, self.final_order_lst, self.var_address_entry.get(), table_id , self.calculate_total())
-        self.database.add_order(final_order.customer_name, final_order.order_type, final_order.items, final_order.address, final_order.table_number, final_order.total)
+        self.database.add_order(final_order.customer_name, final_order.get_order_type(), final_order.get_items(), final_order.address, final_order.table.table_number, final_order.total)
         self.database.set_table_status(table_id, 1)
 
     ################

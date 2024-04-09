@@ -13,13 +13,12 @@ PROJECT_UI = PROJECT_PATH / "customer_gui.ui"
 #TODO
 #   change the meal_index
 #   general refactoring
-
 class GuiApp:
     ######################
     #--> INITIAL SETUP <--
     ######################
 
-    def __init__(self, master=None):
+    def __init__(self, meal_price_index, master=None):
         self.builder = builder = pygubu.Builder()
         builder.add_resource_path(PROJECT_PATH)
         builder.add_from_file(PROJECT_UI)
@@ -33,17 +32,11 @@ class GuiApp:
         builder.import_variables(self)
 
         builder.connect_callbacks(self)
+        self.meal_price_index = meal_price_index
+        self.run()
 
     def run(self):
         self.final_order = []
-        self.meal_price_index = {
-            "Meal 1" : 5,
-            "Meal 2" : 10,
-            "Meal 3" : 15,
-            "Meal 4" : 20,
-            "Meal 5" : 25,
-            "Meal 6" : 30,
-        }
         self.database = sqlhandler.RestaurantDatabase()
         self.mainwindow.mainloop()
 
@@ -117,8 +110,6 @@ class GuiApp:
         
         self.lock_entry("w_address_entry")
         self.lock_all_buttons()
-        self.lock_all_buttons()
-        self.lock_all_buttons()
 
     def e_takeaway(self):
         if not self.validate_name():
@@ -126,15 +117,11 @@ class GuiApp:
         self.order_type = "Takeaway"
         self.lock_entry("w_address_entry")
         self.lock_all_buttons()
-        self.lock_all_buttons()
-        self.lock_all_buttons()
 
     def e_delivery(self):
         if not self.validate_name():
             return
         self.order_type = "Delivery"
-        self.lock_all_buttons()
-        self.lock_all_buttons()
         self.lock_all_buttons()
 
     def e_add_meal(self):
@@ -160,6 +147,14 @@ class GuiApp:
         exit(0)
 
 if __name__ == "__main__":
+    meal_price_index = {
+        "Meal 1" : 5,
+        "Meal 2" : 10,
+        "Meal 3" : 15,
+        "Meal 4" : 20,
+        "Meal 5" : 25,
+        "Meal 6" : 30,
+    }
     root = tk.Tk()
-    app = GuiApp(root)
+    app = GuiApp(meal_price_index, root)
     app.run()

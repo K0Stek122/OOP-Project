@@ -1,0 +1,169 @@
+CLASS GUIAPP
+    CONSTRUCTOR (self, meal_price_index, master=None)
+        THIS.var_name_entry: tk.StringVar = None
+        THIS.var_address_entry: tk.StringVar = None
+        THIS.var_available_meals_combobox: tk.StringVar = None
+        THIS.var_total_label: tk.StringVar = None
+        THIS.meal_price_index = meal_price_index
+        THIS.run()
+    END CONSTRUCTOR
+
+    METHOD run(self)
+        THIS.final_order = []
+        THIS.database = SQLHANDLER.RestaurantDatabase()
+        THIS.mainwindow.mainloop()
+    END METHOD
+
+    METHOD is_proper_name(self, name)
+        IF name == "" OR NOT bool(re.match(r"^[A-Z][a-z]+\s[A-Z][a-z]+$", name)) THEN
+            RETURN FALSE
+        END IF
+        RETURN TRUE
+    END METHOD
+
+    METHOD validate_name(self)
+        IF NOT THIS.is_proper_name(THIS.var_name_entry.get()) THEN
+            MESSAGEBOX("Improper name", "The name you have entered is improper.")
+            RETURN FALSE
+        END IF
+        name_entry = THIS.get_entry("w_name_entry") #These two lines will lock the widget once the name is deemed to be proper.
+        name_entry.configure(state="disabled")
+        RETURN TRUE
+    END METHOD
+
+    METHOD calculate_total(self)
+        total = 0
+        FOR meal IN THIS.final_order:
+            total += THIS.meal_price_index[meal]
+        END FOR
+        RETURN total
+    END METHOD
+
+    METHOD place_order(self)
+        table_id = 1
+        IF THIS.order_type == "Dine In" THEN
+            table_id = THIS.database.get_next_free_table()
+        END IF
+        THIS.database.add_order(THIS.var_name_entry.get(), THIS.order_type, THIS.final_order, THIS.var_address_entry.get(), table_id , THIS.calculate_total())
+        THIS.database.set_table_status(table_id, 1)
+    END METHOD
+
+    METHOD e_add_meal(self)
+        THIS.final_order.append(THIS.var_available_meals_combobox.get())
+        THIS.append_to_textbox("w_selected_meals_textbox", THIS.var_available_meals_combobox.get())
+
+        THIS.var_total_label.set(f"Total: {THIS.calculate_total()}$")
+    END METHOD
+
+    METHOD e_order(self)
+        IF NOT THIS.var_name_entry.get() THEN
+            MESSAGEBOX("Empty Name", "Enter your name first.")
+            RETURN
+        END IF
+        IF len(THIS.final_order) <= 0 THEN
+            MESSAGEBOX("Empty order", "Cannot order nothing.")
+            RETURN
+        END IF
+        IF NOT THIS.var_address_entry.get() AND THIS.order_type == "Delivery" THEN
+            MESSAGEBOX("Empty Address", "You have to input your address first.")
+            RETURN
+        END IF
+    END METHOD
+END CLASS
+
+CLASS RESTAURANTGUIAPP:
+    CONSTRUCTOR(self, master=None)
+        THIS.builder = builder = pygubu.Builder()
+        builder.add_resource_path(PROJECT_PATH)
+        builder.add_from_file(PROJECT_UI)
+        # Main widget
+        THIS.mainwindow: ttk.Frame = builder.get_object("frame1", master)
+
+        THIS.var_order_id_entry: tk.IntVar = None
+        builder.import_variables(self)
+
+        builder.connect_callbacks(self)
+    END CONSTRUCTOR
+
+    METHOD run(self)
+        THIS.orders_database = sqlhandler.RestaurantDatabase()
+        THIS.refresh_orders()
+
+        THIS.mainwindow.mainloop()
+    END METHOD
+
+    METHOD e_remove_order(self)
+        THIS.orders_database.cursor.execute("UPDATE tables SET table_status = 0 WHERE table_id = (SELECT table_id FROM orders WHERE order_id = ?)", (THIS.var_order_id_entry.get(),))
+        THIS.orders_database.remove_order(THIS.var_order_id_entry.get())
+        THIS.orders_database.conn.commit()
+        THIS.refresh_orders()
+    END METHOD
+END CLASS
+
+CLASS RESTAURANTDATABASE:
+    CONSTRUCTOR(self)
+        THIS.conn = sqlite3.connect("Restaurant.db")
+        THIS.cursor = THIS.conn.cursor()
+        THIS.initialise_restaurant()
+    END CONSTRUCTOR
+
+    METHOD initialise_restaurant(self)
+        THIS.set_foreign_key(TRUE)
+        THIS.create_tables()
+        THIS.insert_tables_if_empty()
+    END METHOD
+
+    METHOD execute_sql_query(self, cmd, params=None)
+        IF params THEN
+            EXECUTE_SQL_QUERY(cmd, params)
+        ELSE
+            EXECUTE_SQL_QUERY(cmd)
+        END IF
+        THIS.conn.commit()
+        RETURN THIS.cursor.fetchall()
+    END METHOD
+
+    METHOD create_tables(self)
+        THIS.execute_sql_query("CREATE TABLE IF NOT EXISTS orders (order_id INTEGER PRIMARY KEY, customer_name TEXT, order_type TEXT, full_order TEXT, address TEXT, table_id INTEGER, total INTEGER, FOREIGN KEY (table_id) REFERENCES tables(table_id))")
+        THIS.execute_sql_query("CREATE TABLE IF NOT EXISTS tables (table_id INTEGER PRIMARY KEY, table_status INTEGER)")
+    END METHOD
+
+    METHOD insert_tables_if_empty(self)
+        IF THIS.get_table_count() == 0 THEN
+            FOR _ IN RANGE(50)
+                THIS.execute_sql_query("INSERT INTO tables (table_status) VALUES (?)", (0,))
+            END FOR
+        END IF
+    END METHOD
+
+    METHOD add_order(self, customer_name : str, order_type : str, order : list, address : str, table : int, total : int)
+        THIS.execute_sql_query("INSERT INTO orders (customer_name, order_type, full_order, address, table_id, total) VALUES (?, ?, ?, ?, ?, ?)", (customer_name, order_type, ' '.join(order), address, table, total))
+    END METHOD
+        
+    METHOD remove_order(self, order_id : int)
+        THIS.execute_sql_query("DELETE FROM orders WHERE order_id == ?", (order_id,))
+    END METHOD
+
+    METHOD return_all_orders(self)
+        RETURN THIS.execute_sql_query("SELECT * FROM orders")
+    END METHOD
+    
+    METHOD get_table_count(self)
+        res = THIS.execute_sql_query("SELECT COUNT(*) FROM tables")[0]
+        RETURN res
+    END METHOD
+        
+    METHOD set_foreign_key(self, state)
+        THIS.execute_sql_query("PRAGMA foreign_keys = ON" if state ELSE "PRAGMA foreign_keys = on")
+    END METHOD
+    
+    METHOD get_next_free_table(self)
+        res = THIS.execute_sql_query("SELECT table_id FROM tables WHERE table_status = 0 LIMIT 1")
+        RETURN res
+    END METHOD
+        
+    METHOD set_table_status(self, table_id : int, table_status : int)
+        THIS.execute_sql_query("UPDATE tables SET table_status = ? WHERE table_id = ?", (table_status, table_id))
+    END METHOD
+END CLASS
+```

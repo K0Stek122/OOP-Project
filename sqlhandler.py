@@ -1,12 +1,16 @@
 import sqlite3
 
 class RestaurantDatabase:
+    #########################################
+    #CONSTRUCTORS AND QUALITY OF LIFE FUNCS #
+    #########################################
+    
     def __init__(self):
         self.conn = sqlite3.connect("Restaurant.db")
         self.cursor = self.conn.cursor()
-        self.init()
+        self.initialise_restaurant()
 
-    def init(self):
+    def initialise_restaurant(self):
         self.set_foreign_key(True)
         self.create_tables()
         self.insert_tables_if_empty()
@@ -27,13 +31,6 @@ class RestaurantDatabase:
         if self.get_table_count() == 0:
             for _ in range(50):
                 self.execute_sql_query("INSERT INTO tables (table_status) VALUES (?)", (0,))
-
-    def get_table_count(self):
-        res = self.execute_sql_query("SELECT COUNT(*) FROM tables")[0]
-        return int(str(res).strip("(,)"))
-        
-    def set_foreign_key(self, state):
-        self.execute_sql_query("PRAGMA foreign_keys = ON" if state else "PRAGMA foreign_keys = on")
     
     def add_order(self, customer_name : str, order_type : str, order : list, address : str, table : int, total : int):
         self.execute_sql_query("INSERT INTO orders (customer_name, order_type, full_order, address, table_id, total) VALUES (?, ?, ?, ?, ?, ?)", (customer_name, order_type, ' '.join(order), address, table, total))
@@ -43,6 +40,17 @@ class RestaurantDatabase:
 
     def return_all_orders(self):
         return self.execute_sql_query("SELECT * FROM orders")
+    
+    #######################
+    # GETTERS AND SETTERS #
+    #######################
+    
+    def get_table_count(self):
+        res = self.execute_sql_query("SELECT COUNT(*) FROM tables")[0]
+        return int(str(res).strip("(,)"))
+        
+    def set_foreign_key(self, state):
+        self.execute_sql_query("PRAGMA foreign_keys = ON" if state else "PRAGMA foreign_keys = on")
     
     def get_next_free_table(self):
         res = self.execute_sql_query("SELECT table_id FROM tables WHERE table_status = 0 LIMIT 1")

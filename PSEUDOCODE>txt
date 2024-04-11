@@ -1,16 +1,16 @@
-CLASS GUIAPP
+CLASS CUSTOMER_FRONTEND
     CONSTRUCTOR (self, meal_price_index, master=None)
-        THIS.var_name_entry: tk.StringVar = None
-        THIS.var_address_entry: tk.StringVar = None
-        THIS.var_available_meals_combobox: tk.StringVar = None
-        THIS.var_total_label: tk.StringVar = None
+        THIS.var_name_entry = None
+        THIS.var_address_entry = None
+        THIS.var_available_meals_combobox = None
+        THIS.var_total_label = None
         THIS.meal_price_index = meal_price_index
         THIS.run()
     END CONSTRUCTOR
 
     METHOD run(self)
         THIS.final_order = []
-        THIS.database = SQLHANDLER.RestaurantDatabase()
+        THIS.database = SQLHANDLER.RestaurantDatabase() #SQLHANDLER will handle the sql part of the program.
         THIS.mainwindow.mainloop()
     END METHOD
 
@@ -26,7 +26,7 @@ CLASS GUIAPP
             MESSAGEBOX("Improper name", "The name you have entered is improper.")
             RETURN FALSE
         END IF
-        name_entry = THIS.get_entry("w_name_entry") #These two lines will lock the widget once the name is deemed to be proper.
+        name_entry = THIS.get_object("w_name_entry")
         name_entry.configure(state="disabled")
         RETURN TRUE
     END METHOD
@@ -71,7 +71,7 @@ CLASS GUIAPP
     END METHOD
 END CLASS
 
-CLASS RESTAURANTGUIAPP:
+CLASS RESTAURANT_FRONTEND:
     CONSTRUCTOR(self, master=None)
         THIS.builder = builder = pygubu.Builder()
         builder.add_resource_path(PROJECT_PATH)
@@ -93,14 +93,14 @@ CLASS RESTAURANTGUIAPP:
     END METHOD
 
     METHOD e_remove_order(self)
-        THIS.orders_database.cursor.execute("UPDATE tables SET table_status = 0 WHERE table_id = (SELECT table_id FROM orders WHERE order_id = ?)", (THIS.var_order_id_entry.get(),))
+        THIS.orders_database.execute("UPDATE tables SET table_status = 0 WHERE table_id = (SELECT table_id FROM orders WHERE order_id = ?)", (THIS.var_order_id_entry.get(),))
         THIS.orders_database.remove_order(THIS.var_order_id_entry.get())
         THIS.orders_database.conn.commit()
         THIS.refresh_orders()
     END METHOD
 END CLASS
 
-CLASS RESTAURANTDATABASE:
+CLASS SQLHANDLER:
     CONSTRUCTOR(self)
         THIS.conn = sqlite3.connect("Restaurant.db")
         THIS.cursor = THIS.conn.cursor()
@@ -119,7 +119,6 @@ CLASS RESTAURANTDATABASE:
         ELSE
             EXECUTE_SQL_QUERY(cmd)
         END IF
-        THIS.conn.commit()
         RETURN THIS.cursor.fetchall()
     END METHOD
 

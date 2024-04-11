@@ -22,12 +22,12 @@ class Table:
 
 class Order:
     def __init__(self, items, total, customer_name):
-        self.__items = items
-        self.total = total
-        self.customer_name = customer_name
-        self.__order_type = ""
-        self.table = Table(1)
-        self.address = ""
+        self.__items: list = items
+        self.__total: int = total
+        self.__customer_name: str = customer_name
+        self.__order_type: str = ""
+        self.__table = Table(1)
+        self.__address: str = ""
     
     def get_items(self):
         return self.__items
@@ -39,30 +39,38 @@ class Order:
     def set_order_type(self, order_type):
         self.__order_type = order_type
         
+    def get_total(self):
+        return self.__total
+    
+    def get_table(self):
+        return self.__table
+    
+    def get_customer_name(self):
+        return self.__customer_name
+    
+    def get_address(self):
+        return self.__address
+        
 class TakeawayOrder(Order):
     def __init__(self, items, total, customer_name):
         super().__init__(items, total, customer_name)
-        self.order_type = "Takeaway"
-        self.table = 1
+        self.__order_type = "Takeaway"
+        self.__table = Table(1)
 
 
 class DineInOrder(Order):
     def __init__(self, items, total, table_number, customer_name):
         super().__init__(items, total, customer_name)
-        self.table = Table(table_number)
-        self.order_type = "Dine In"
+        self.__table = Table(table_number)
+        self.__order_type = "Dine In"
 
 class DeliveryOrder(Order):
     def __init__(self, items, total, address, customer_name):
         super().__init__(items, total, customer_name)
         self.address = address
-        self.order_type = "Delivery"
-        self.table = Table(1)
+        self.__order_type = "Delivery"
+        self.__table = Table(1)
 
-
-#TODO
-#   change the meal_index
-#   general refactoring
 class GuiApp:
     ######################
     #--> INITIAL SETUP <--
@@ -148,11 +156,17 @@ class GuiApp:
         if self.order_type == "Dine In":
             final_order = DineInOrder(self.final_order_lst, self.calculate_total(), self.database.get_next_free_table(), self.var_name_entry.get())
         elif self.order_type == "Takeaway":
-            final_order = TakeawayOrder(self.final_order_lst, self.calculate_total, self.var_name_entry.get())
+            final_order = TakeawayOrder(self.final_order_lst, self.calculate_total(), self.var_name_entry.get())
         else:
             final_order = DeliveryOrder(self.final_order_lst, self.calculate_total(), self.var_address_entry.get(), self.var_name_entry.get())
+        customer_name = final_order.get_customer_name()
+        order_type = final_order.get_order_type()
+        items = final_order.get_items()
+        address = final_order.get_address()
+        table_number = final_order.get_table().get_table_number()
+        total = final_order.get_total()
         # self.database.add_order(self.var_name_entry.get(), self.order_type, self.final_order_lst, self.var_address_entry.get(), table_id , self.calculate_total())
-        self.database.add_order(final_order.customer_name, final_order.get_order_type(), final_order.get_items(), final_order.address, final_order.table.table_number, final_order.total)
+        self.database.add_order(customer_name, order_type, items, address, table_number, total)
         self.database.set_table_status(table_id, 1)
 
     ################

@@ -33,7 +33,7 @@ class RestaurantDatabase:
                 self.execute_sql_query("INSERT INTO tables (table_status) VALUES (?)", (0,))
     
     def add_order(self, customer_name : str, order_type : str, order : list, address : str, table : int, total : int):
-        self.execute_sql_query("INSERT INTO orders (customer_name, order_type, full_order, address, table_id, total) VALUES (?, ?, ?, ?, ?, ?)", (customer_name, order_type, ' '.join(order), address, table, total))
+        self.execute_sql_query("INSERT INTO orders (customer_name, order_type, full_order, address, table_id, total) VALUES (?, ?, ?, ?, ?, ?)", (customer_name, order_type, ' '.join(order), address, table, total,))
         
     def remove_order(self, order_id : int):
         self.execute_sql_query("DELETE FROM orders WHERE order_id == ?", (order_id,))

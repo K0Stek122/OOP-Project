@@ -32,7 +32,7 @@ class Order:
     def get_items(self):
         return self.__items
     def set_items(self, items):
-        self.__items == items
+        self.__items = items
     
     def get_order_type(self):
         return self.__order_type
@@ -71,7 +71,7 @@ class DeliveryOrder(Order):
         self.__order_type = "Delivery"
         self.__table = Table(1)
 
-class GuiApp:
+class Customer:
     ######################
     #--> INITIAL SETUP <--
     ######################
@@ -227,5 +227,5 @@ if __name__ == "__main__":
         "Meal 6" : 30,
     }
     root = tk.Tk()
-    app = GuiApp(meal_price_index, root)
+    app = Customer(meal_price_index, root)
     app.run()

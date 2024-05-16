@@ -151,7 +151,7 @@ class Customer:
     def calculate_total(self):
         return sum(self.meal_price_index[meal] for meal in self.final_order_lst)
 
-    def place_order(self):
+    def place_order(self):    
         table_id = 1
         final_order = None
         if self.order_type == "Dine In":
@@ -160,6 +160,7 @@ class Customer:
             final_order = TakeawayOrder(self.final_order_lst, self.calculate_total(), self.var_name_entry.get())
         else:
             final_order = DeliveryOrder(self.final_order_lst, self.calculate_total(), self.var_address_entry.get(), self.var_name_entry.get())
+        #Gets all the information in order to write it to the database.
         customer_name = final_order.get_customer_name()
         order_type = final_order.get_order_type()
         items = final_order.get_items()
@@ -167,6 +168,7 @@ class Customer:
         table_number = final_order.get_table().get_table_number()
         self.final_table_number = table_number
         total = final_order.get_total()
+        # These two lines are what writes the data to the database.
         self.database.add_order(customer_name, order_type, items, address, table_number, total)
         self.database.set_table_status(table_id, 1)
 
@@ -221,7 +223,7 @@ class Customer:
 #if __name__ == "__main__":
 
 def run():
-    meal_price_index = {
+    meal_price_index = { #Defines the restaurant's menu
         "Chips" : 5,
         "Hamburger" : 10,
         "Cheeseburger" : 15,

@@ -4,6 +4,7 @@ import re
 import tkinter as tk
 from tkinter import messagebox
 import pygubu
+
 # IN-HOUSE MODULES
 import sqlhandler
 
@@ -164,8 +165,8 @@ class Customer:
         items = final_order.get_items()
         address = final_order.get_address()
         table_number = final_order.get_table().get_table_number()
+        self.final_table_number = table_number
         total = final_order.get_total()
-        # self.database.add_order(self.var_name_entry.get(), self.order_type, self.final_order_lst, self.var_address_entry.get(), table_id , self.calculate_total())
         self.database.add_order(customer_name, order_type, items, address, table_number, total)
         self.database.set_table_status(table_id, 1)
 
@@ -214,17 +215,19 @@ class Customer:
         
         self.place_order()
 
-        messagebox.showinfo("Order Placed", "Your order has been placed, Thank You.")
+        messagebox.showinfo("Order Placed", f"Your order has been placed, Your allocated table is {self.final_table_number}. Thank You.")
         exit(0)
 
-if __name__ == "__main__":
+#if __name__ == "__main__":
+
+def run():
     meal_price_index = {
-        "Meal 1" : 5,
-        "Meal 2" : 10,
-        "Meal 3" : 15,
-        "Meal 4" : 20,
-        "Meal 5" : 25,
-        "Meal 6" : 30,
+        "Chips" : 5,
+        "Hamburger" : 10,
+        "Cheeseburger" : 15,
+        "Soda" : 20,
+        "Tea" : 25,
+        "Coffee" : 30,
     }
     root = tk.Tk()
     app = Customer(meal_price_index, root)

@@ -73,7 +73,7 @@ class RestaurantGuiApp:
         self.refresh_orders()
 
 
-if __name__ == "__main__":
+def run():
     root = tk.Tk()
     app = RestaurantGuiApp(root)
     app.run()

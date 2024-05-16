@@ -104,7 +104,7 @@
     <child>
       <object class="ttk.Combobox" id="w_available_meals_combobox" named="True">
         <property name="textvariable">string:var_available_meals_combobox</property>
-        <property name="values">"Meal 1" "Meal 2" "Meal 3" "Meal 4" "Meal 5" "Meal 6"</property>
+        <property name="values">"Chips" "Hamburger" "Cheeseburger" "Soda" "Tea" "Coffee"</property>
         <property name="width">10</property>
         <layout manager="grid">
           <property name="column">1</property>
